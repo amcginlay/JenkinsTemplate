@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <OutDir Condition=" '$(OutDir)'=='' ">$(MSBuildThisFileDirectory)bin\</OutDir>
+    <Configuration Condition=" '$(Configuration)'=='' ">Release</Configuration>
+    <SourceHome Condition=" '$(SourceHome)'=='' ">$(MSBuildThisFileDirectory)src\</SourceHome>
+    <ToolsHome Condition=" '$(ToolsHome)'=='' ">$(MSBuildThisFileDirectory)tools\</ToolsHome>
+    
+    <MsTestExePath>C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE\mstest.exe</MsTestExePath>
+    <DoubleQuotes>"</DoubleQuotes>
+    <MsTestResultsFile>Results.trx</MsTestResultsFile>
+    <Configuration>Release</Configuration>
+	
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Solution Include="$(SourceHome)*.sln">
+      <AdditionalProperties>OutDir=$(OutDir);Configuration=$(Configuration)</AdditionalProperties>
+    </Solution>
+  </ItemGroup>
+
+  <Target Name="RestorePackages">
+    <Exec Command="&quot;$(ToolsHome)NuGet\NuGet.exe&quot; restore &quot;%(Solution.Identity)&quot;" />
+  </Target>
+  
+  <Target Name="Clean">
+    <MSBuild Targets="Clean" Projects="@(Solution)" />
+  </Target>
+
+  <Target Name="Build" DependsOnTargets="RestorePackages">
+    <MSBuild Targets="Build" Projects="@(Solution)" />
+	<CallTarget Targets="AfterBuild"/>
+  </Target>
+
+  <Target Name="AfterBuild">
+    <ItemGroup>
+      <TestAssemblies Include="$(MSBuildProjectDirectory)\bin\*.Test.dll"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+      <MsTestCommand>"$(MsTestExePath)" @(TestAssemblies->'/testcontainer:"%(FullPath)"', ' ') /resultsfile:"$(MsTestResultsFile)"</MsTestCommand>
+    </PropertyGroup>
+
+    <Message Text="MsTestCommand: @(TestAssemblies->'/testcontainer:$(DoubleQuotes)%(FullPath)$(DoubleQuotes)', ' ')" Importance="high"/>
+
+    <Delete Files="$(MsTestResultsFile)" />
+
+    <Exec Command="$(MsTestCommand)" ContinueOnError="true" />
+</Target>  
+  
+</Project>
